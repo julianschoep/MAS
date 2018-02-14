@@ -1,0 +1,137 @@
+buses-own [
+  ; Static, read-only variables. These values never change. You can read them, but you cannot change them.
+  bus_id          ; The ID of a given agent (bus). Each agent has a unique ID.
+  bus_type        ; The type of a given agent (bus). 1 means "small", 2 means "medium" and 3 means "large".
+    
+  ; Dynamic, read-only variables. These values may change over time. You can read them, but you cannot change them.
+  inbox           ; List containing all the incoming messages (a given message is a list like this [tick sender message]).
+  bus_passengers  ; List containing all the passengers that the agent (bus) is currently carrying (represented as a list like this [passenger_id bus_stop]).
+  previous_stop   ; ID of the last bus stop that the agent (bus) visited (-1 means that the agent has not visited any bus stop yet).
+  current_stop    ; ID of the bus stop where the agent (bus) currently is (-1 means that the agent is not at any bus stop).
+  next_stop       ; ID of the bus stop the agent (bus) is traveling to (-1 means that the agent is not travelling to any bus stop).
+
+  ; New local variables for students.
+  ; You can create any new local variable you want. Just declare them here.
+  bus_route  ; bus-stop-route
+  route_index ; on what index of the route the bus is
+  passenger_list
+  capacity
+]
+ 
+globals [graph]
+
+to init-buses
+  ; Initialize your agents here.
+  set bus_route [3 16 11 17 5 4 10 13 7 1 19 23 14 0 15 18 15 12 20 21 22 21 20 9 8 2 8 6 8 9 3]
+  set route_index 0
+  set passenger_list []
+  ; This list contains the topology of the entire network of bus stops, which is known to all agents. You can use this, for instance, to calculate the shortest path between two bus stops.
+  set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
+end
+
+to travel-to-global [bus_stop]
+  
+end 
+
+to report-capacity
+  let cap 0
+  if bus_type = 1[
+    set capacity bus_type1_capacity
+  ]
+  if bus_type = 2[
+    set capacity bus_type2_capacity
+  ]
+  if bus_type = 3[
+    set capacity bus_type3_capacity
+  ]
+  show (word "Bus capacity: " length(passenger_list) word "/" capacity)
+  
+end
+
+
+
+to execute-actions
+  report-capacity
+  ifelse current_stop < 0 [ travel-to next_stop] ; bus is between stops
+  [
+    ifelse route_index = (length(bus_route)- 1) [set route_index 0] ; end of route
+    [ 
+      set route_index route_index + 1
+      ; at a bus stop
+      ; pick up passengers
+      let passengers_at_stop get-passengers-at-stop current_stop ; get passengers at bus stop
+      foreach passengers_at_stop[
+        let p_id item 0 ?
+        let p_dest item 1 ?
+        
+        if p_dest != current_stop[
+          show( word "Picked up passenger " p_id)
+          show( word "  with destination " p_dest)
+          ifelse length(passenger_list) >= capacity[
+            show( word "Not picking up passenger. We full.")
+          ][
+          pick-up-passenger p_id
+          set passenger_list lput ? passenger_list  
+          ]
+          
+        ]
+        
+      ]
+      ; drop off passengers
+
+      foreach passenger_list [
+        let p_id item 0 ?
+        let p_dest item 1 ?
+        
+        if p_dest = current_stop[
+          show(word "Dropped off passenger " p_id)
+          drop-off-passenger p_id
+          remove-from-passenger-list p_id
+        ]
+      ]
+      ; travel to next stop
+      travel-to item route_index bus_route 
+    ]
+    
+  ]
+  ; Add decision making strategies for your agents here.
+  ; You are allowed to use the global variable 'ticks'.
+end
+
+to remove-from-passenger-list [p_id]
+  show(word "BEFORE REMOVE LENGTH" length(passenger_list))
+  let new_list []
+  foreach passenger_list[
+    if p_id != item 0 ?[
+      set new_list lput ? new_list
+      ]
+  ]
+  set passenger_list new_list
+  show(word "AFTER REMOVE LENGTH" length(passenger_list))
+end
+;Observations
+;get-distance [bus_stop bus_stop] return the distance in patches between two bus stops (returns real)
+;get-passengers-at-stop [bus_stop] for a given bus stop, return all passengers with their destinations
+;(returns a list of tuples of the form [passenger_id bus_stop])
+
+;Actions
+;add-bus [vehicle_type] add a vehicle of a certain type and place it at Centraal station
+;travel-to [bus_stop] travel to an adjacent bus stop
+;pick-up-passenger [passenger_id] pick up a passenger from current bus stop
+;drop-off-passenger [passenger_id] drop off a passenger at current bus stop
+;send-message [bus_id message] send a message to another bus (to have it added to its inbox)
+
+;Information Types
+;bus_stop {0, 1, 2, …, 23} where 0=Amstel, …, 23=Zuid
+;bus_id15 {24, 25, 26, …}
+;vehicle_type {1, 2, 3} where 1=small, 2=medium, 3=large
+;passenger_id {0, 1, 2, …}
+;message any arbitrary string
+;
+; graph item 3 --> returns all destinations from central station
+;           
+;
+;
+;
+;
+;
